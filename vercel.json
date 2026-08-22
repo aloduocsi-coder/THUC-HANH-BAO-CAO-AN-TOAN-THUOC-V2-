@@ -1,0 +1,5 @@
+{
+  "rewrites": [
+    { "source": "/api/send-report", "destination": "/api/send-report.js" }
+  ]
+}

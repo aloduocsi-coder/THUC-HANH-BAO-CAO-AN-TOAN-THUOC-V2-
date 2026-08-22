@@ -686,7 +686,7 @@
 
         /**
          * Chức năng Gửi Báo cáo (Tạo file PDF ngầm & Gửi Email từ thuky.hdhct@gmail.com)
-         * Khi chạy trên Vercel: Tự động gọi API Serverless /api/send-report
+         * Tự động tương thích Vercel Serverless Function & Google Apps Script
          */
         async function sendReportEmail() {
             const reporterEmail = document.getElementById('nguoi_bao_cao_email').value.trim();
@@ -759,14 +759,50 @@
                     return;
                 }
 
-                // Endpoint Vercel API
-                const endpoint = '/api/send-report';
+                // 3. Xác định Endpoint gửi email (Mặc định là Vercel Serverless Function /api/send-report)
+                let endpoint = localStorage.getItem('ADR_GAS_URL') || '/api/send-report';
+                let isGasUrl = endpoint.includes('script.google.com');
 
-                const response = await fetch(endpoint, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
+                let response;
+                try {
+                    response = await fetch(endpoint, {
+                        method: 'POST',
+                        headers: { 
+                            'Content-Type': isGasUrl ? 'text/plain;charset=utf-8' : 'application/json' 
+                        },
+                        body: JSON.stringify(payload)
+                    });
+                } catch (netErr) {
+                    console.warn('Lỗi kết nối tới endpoint:', endpoint, netErr);
+                }
+
+                // Nếu Vercel trả về lỗi 404 (do chưa commit/push file api/send-report.js lên Vercel)
+                if (!response || !response.ok || response.status === 404) {
+                    const errorDetails = response ? `Mã lỗi HTTP ${response.status}` : 'Không có phản hồi mạng';
+
+                    const promptUrl = prompt(
+                        `❌ CHƯA KẾT NỐI ĐƯỢC API VERCEL (${errorDetails})\n\n` +
+                        `• Nếu bạn đang dùng Vercel: Vui lòng đảm bảo đã commit & push cả 2 file [api/send-report.js] và [vercel.json] lên GitHub để Vercel tự động khởi tạo API.\n\n` +
+                        `• Nếu bạn muốn dùng tạm Web App Google Apps Script: Dán URL Web App (https://script.google.com/macros/s/.../exec) tại đây để gửi ngay:`,
+                        localStorage.getItem('ADR_GAS_URL') || ''
+                    );
+
+                    if (promptUrl && promptUrl.trim()) {
+                        endpoint = promptUrl.trim();
+                        localStorage.setItem('ADR_GAS_URL', endpoint);
+                        isGasUrl = endpoint.includes('script.google.com');
+
+                        response = await fetch(endpoint, {
+                            method: 'POST',
+                            headers: { 
+                                'Content-Type': isGasUrl ? 'text/plain;charset=utf-8' : 'application/json' 
+                            },
+                            body: JSON.stringify(payload)
+                        });
+                    } else {
+                        throw new Error(`API gửi email (/api/send-report) chưa được Vercel ghi nhận (Lỗi 404). Hãy push thư mục api/send-report.js và file vercel.json cập nhật lên GitHub.`);
+                    }
+                }
 
                 const responseText = await response.text();
                 let result;
@@ -776,8 +812,8 @@
                 } catch (e) {
                     if (responseText.trim().startsWith('<')) {
                         throw new Error(
-                            'Máy chủ trả về trang HTML thay vì JSON.\n' +
-                            'Vui lòng đảm bảo bạn đã deploy ứng dụng lên Vercel cùng thư mục api/send-report.js.'
+                            'Máy chủ phản hồi trang HTML thay vì JSON.\n' +
+                            'Nếu dùng Vercel: Vui lòng kiểm tra trang quản trị Vercel xem thư mục api/send-report.js đã build thành công chưa.'
                         );
                     }
                     throw new Error('Dữ liệu máy chủ trả về không hợp lệ: ' + responseText.substring(0, 100));

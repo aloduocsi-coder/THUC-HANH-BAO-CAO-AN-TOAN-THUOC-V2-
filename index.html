@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Báo cáo phản ứng có hại của thuốc (ADR) - Phiên bản Học Thực Hành</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- html2pdf.js CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <!-- html-docx-js CDN & FileSaver CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/html-docx-js@0.3.1/dist/html-docx.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <style>
+        body { font-family: 'Times New Roman', Times, serif; background-color: #f3f4f6; color: #000; margin: 0; padding: 0; }
+        .form-container { max-width: 960px; margin: 20px auto; background: white; padding: 35px 40px; box-shadow: 0 4px 10px rgba(0,0,0,0.15); border: 1px solid #ccc; }
+        .section-title { background-color: #000; color: #fff; padding: 4px 8px; font-weight: bold; margin-top: 16px; margin-bottom: 0; font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px; page-break-after: avoid; }
+        .input-field { border: none; border-bottom: 1px dotted #000; width: 100%; outline: none; background: transparent; font-family: inherit; font-size: 14px; padding: 2px 4px; }
+        .input-inline { border: none; border-bottom: 1px dotted #000; outline: none; background: transparent; font-family: inherit; font-size: 14px; padding: 0 4px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 0; font-size: 13px; }
+        th, td { border: 1px solid #000; padding: 5px 6px; text-align: left; vertical-align: middle; }
+        th { background-color: #f9fafb; font-weight: bold; text-align: center; }
+
+        /* Line fill for textareas */
+        .dotted-textarea {
+            width: 100%;
+            outline: none;
+            resize: vertical;
+            border: none;
+            background: repeating-linear-gradient(transparent, transparent 23px, #666 23px, #666 24px);
+            line-height: 24px;
+            font-family: inherit;
+            font-size: 14px;
+            padding: 0 4px;
+        }
+
+        .avoid-break { page-break-inside: avoid; }
+
+        @media print {
+            .no-print { display: none !important; }
+            body { background: white; padding: 0; }
+            .form-container { max-width: 100%; margin: 0; padding: 15px; box-shadow: none; border: none; }
+        }
+    </style>
+</head>
+<body class="pb-12">
+
+    <!-- Top Action Toolbar -->
+    <div class="no-print bg-slate-900 text-white sticky top-0 z-50 shadow-md py-3 px-4 mb-6">
+        <div class="max-w-[1000px] mx-auto flex flex-col md:flex-row items-center justify-between gap-3">
+            <div class="flex items-center space-x-2">
+                <span class="text-xl">🎓</span>
+                <div>
+                    <h2 class="font-bold text-base leading-tight">Báo Cáo ADR - PHIÊN BẢN HỌC THỰC HÀNH</h2>
+                    <p class="text-xs text-amber-300 font-medium">Tự động gửi email bản sao từ thuky.hdhct@gmail.com</p>
+                </div>
+            </div>
+
+            <!-- Copy Email & Action buttons -->
+            <div class="flex flex-wrap items-center gap-2 w-full md:w-auto justify-end">
+                <div class="flex items-center bg-slate-800 border border-slate-600 rounded px-2 py-1 text-xs">
+                    <span class="text-slate-300 mr-1.5 whitespace-nowrap">✉️ Email Dược sĩ/Học viên:</span>
+                    <input type="email" id="toolbar-email-copy" oninput="syncEmailToForm(this.value)" placeholder="duocsi.hocvien@gmail.com" class="bg-transparent border-b border-slate-400 text-white outline-none w-52 text-xs px-1">
+                </div>
+
+                <button onclick="exportPDF()" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-3 py-2 rounded flex items-center gap-1 shadow transition">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                    Xuất PDF
+                </button>
+
+                <button onclick="exportWord()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-3 py-2 rounded flex items-center gap-1 shadow transition">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                    Xuất Word (.docx)
+                </button>
+
+                <button id="btn-send-email" onclick="sendReportEmail()" class="bg-purple-600 hover:bg-purple-700 text-white text-xs font-semibold px-3.5 py-2 rounded flex items-center gap-1 shadow transition disabled:opacity-50 disabled:cursor-not-allowed">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
+                    <span id="btn-send-text">Gửi Báo Cáo</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Toast -->
+    <div id="toast" class="no-print fixed bottom-5 right-5 z-50 hidden bg-slate-800 text-white px-4 py-3 rounded-lg shadow-xl flex items-center space-x-3 text-sm border-l-4 border-blue-500">
+        <span id="toast-icon">ℹ️</span>
+        <span id="toast-message">Thông báo...</span>
+    </div>
+
+    <!-- Main ADR Report Document Container -->
+    <div id="adr-form" class="form-container">
+        
+        <!-- Practice Badge Banner -->
+        <div class="bg-amber-50 border border-amber-300 rounded p-2 mb-4 text-center text-xs text-amber-900 font-semibold no-print">
+            ⚠️ PHIÊN BẢN HỌC THỰC HÀNH: Hệ thống tự động gửi bản sao kết xuất (PDF/Word) từ địa chỉ <b>thuky.hdhct@gmail.com</b> về email Dược sĩ / Học viên nhập để lưu trữ bài thực hành.
+        </div>
+
+        <!-- Header -->
+        <div class="flex flex-col sm:flex-row justify-between items-start mb-4 gap-4 border-b pb-4">
+            <div class="flex items-center w-full sm:w-2/3">
+                <div class="w-16 h-16 border-2 border-black rounded-full flex items-center justify-center font-bold text-xl mr-4 shrink-0">ADR</div>
+                <div>
+                    <h1 class="text-lg sm:text-xl font-bold uppercase leading-snug">Báo cáo phản ứng có hại của thuốc</h1>
+                    <p class="text-xs font-bold text-blue-900 uppercase tracking-wide mt-0.5">(PHIÊN BẢN HỌC THỰC HÀNH)</p>
+                    <p class="font-bold italic text-xs mt-1 text-gray-800">THÔNG TIN VỀ NGƯỜI BÁO CÁO, BỆNH NHÂN VÀ ĐƠN VỊ BÁO CÁO SẼ ĐƯỢC BẢO MẬT</p>
+                </div>
+            </div>
+            <div class="w-full sm:w-1/3 text-xs border border-black p-2 bg-slate-50">
+                <p class="mb-1.5">Nơi báo cáo: <input type="text" id="noi_bao_cao" class="input-inline w-7/12 font-medium"></p>
+                <p class="mb-1.5">Mã số báo cáo của đơn vị: <input type="text" id="ma_so_don_vi" class="input-inline w-1/2 font-medium"></p>
+                <p>Mã số báo cáo (do Trung tâm quốc gia quản lý): <input type="text" id="ma_so_quoc_gia" class="input-inline w-1/3 font-medium"></p>
+            </div>
+        </div>
+
+        <p class="text-center italic font-bold text-xs sm:text-sm mb-4 text-gray-900">Xin anh/chị hãy báo cáo kể cả khi không chắc chắn về sản phẩm đã gây ra phản ứng và/hoặc không có đầy đủ các thông tin</p>
+
+        <!-- Phần A: Thông tin bệnh nhân -->
+        <div class="avoid-break">
+            <div class="section-title">A. THÔNG TIN VỀ BỆNH NHÂN</div>
+            <div class="grid grid-cols-1 sm:grid-cols-4 border border-black text-sm">
+                <div class="sm:col-span-2 border-b sm:border-b-0 sm:border-r border-black p-2">
+                    1. Họ và tên: <input type="text" id="benh_nhan_ho_ten" class="input-field mt-1 font-semibold">
+                </div>
+                <div class="border-b sm:border-b-0 sm:border-r border-black p-2">
+                    2. Ngày sinh: <input type="text" id="benh_nhan_ngay_sinh" class="input-inline w-24" placeholder="dd/mm/yyyy"><br>
+                    Hoặc tuổi: <input type="text" id="benh_nhan_tuoi" class="input-inline w-16">
+                </div>
+                <div class="border-b sm:border-b-0 sm:border-r border-black p-2">
+                    3. Giới tính <br>
+                    <label class="inline-flex items-center cursor-pointer mr-3 mt-1"><input type="checkbox" id="gioi_tinh_nam" class="w-4 h-4 mr-1"> Nam</label>
+                    <label class="inline-flex items-center cursor-pointer"><input type="checkbox" id="gioi_tinh_nu" class="w-4 h-4 mr-1"> Nữ</label>
+                </div>
+                <div class="p-2">
+                    4. Cân nặng: <input type="text" id="benh_nhan_can_nang" class="input-inline w-16 text-center"> kg
+                </div>
+            </div>
+        </div>
+
+        <!-- Phần B: Thông tin về phản ứng có hại -->
+        <div class="avoid-break mt-4">
+            <div class="section-title">B. THÔNG TIN VỀ PHẢN ỨNG CÓ HẠI (ADR)</div>
+            <div class="border border-black flex flex-col text-sm">
+                <div class="flex flex-col sm:flex-row border-b border-black">
+                    <div class="w-full sm:w-1/2 p-2 border-b sm:border-b-0 sm:border-r border-black">
+                        5. Ngày xuất hiện phản ứng: <input type="text" id="adr_ngay_xuat_hien" class="input-inline w-36" placeholder="dd/mm/yyyy">
+                    </div>
+                    <div class="w-full sm:w-1/2 p-2">
+                        6. Phản ứng xuất hiện sau bao lâu (tính từ lần dùng cuối cùng của thuốc nghi ngờ):
+                        <input type="text" id="adr_thoi_gian_xuat_hien" class="input-field mt-1">
+                    </div>
+                </div>
+
+                <div class="flex flex-col sm:flex-row border-b border-black">
+                    <div class="w-full sm:w-1/2 p-2 border-b sm:border-b-0 sm:border-r border-black">
+                        <label class="font-semibold block mb-1">7. Mô tả biểu hiện ADR</label>
+                        <textarea id="adr_mo_ta" class="dotted-textarea h-36" rows="5"></textarea>
+                    </div>
+                    <div class="w-full sm:w-1/2 flex flex-col">
+                        <div class="h-1/2 p-2 border-b border-black">
+                            <label class="font-semibold block mb-1">8. Các xét nghiệm liên quan đến phản ứng</label>
+                            <textarea id="adr_xet_nghiem" class="dotted-textarea h-16" rows="2"></textarea>
+                        </div>
+                        <div class="h-1/2 p-2">
+                            <label class="font-semibold block mb-1">9. Tiền sử (dị ứng, thai nghén, nghiện thuốc lá, nghiện rượu, bệnh gan, bệnh thận...)</label>
+                            <textarea id="adr_tien_su" class="dotted-textarea h-16" rows="2"></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="p-2 border-b border-black">
+                    <label class="font-semibold block mb-1">10. Cách xử trí phản ứng</label>
+                    <textarea id="adr_cach_xu_tri" class="dotted-textarea h-16" rows="2"></textarea>
+                </div>
+
+                <!-- 11 & 12 Mức độ & Kết quả -->
+                <div class="grid grid-cols-1 md:grid-cols-2 p-2 gap-4">
+                    <div>
+                        <p class="font-semibold mb-1">11. Mức độ nghiêm trọng của phản ứng</p>
+                        <div class="space-y-1 pl-2 text-xs sm:text-sm">
+                            <div><label class="cursor-pointer"><input type="checkbox" id="muc_do_tu_vong"> Tử vong</label></div>
+                            <div><label class="cursor-pointer"><input type="checkbox" id="muc_do_de_doa_tinh_mang"> Đe dọa tính mạng</label></div>
+                            <div><label class="cursor-pointer"><input type="checkbox" id="muc_do_nhap_vien"> Nhập viện/Kéo dài thời gian nằm viện</label></div>
+                            <div><label class="cursor-pointer"><input type="checkbox" id="muc_do_tan_tat"> Tàn tật vĩnh viễn/nặng nề</label></div>
+                            <div><label class="cursor-pointer"><input type="checkbox" id="muc_do_di_tat"> Dị tật thai nhi</label></div>
+                            <div><label class="cursor-pointer"><input type="checkbox" id="muc_do_khong_nghiem_trong"> Không nghiêm trọng</label></div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <p class="font-semibold mb-1">12. Kết quả sau khi xử trí phản ứng</p>
+                        <div class="space-y-1 pl-2 text-xs sm:text-sm">
+                            <div><label class="cursor-pointer"><input type="checkbox" id="ket_qua_tu_vong_do_adr"> Tử vong do ADR</label></div>
+                            <div><label class="cursor-pointer"><input type="checkbox" id="ket_qua_tu_vong_khong_lien_quan"> Tử vong không liên quan đến thuốc</label></div>
+                            <div><label class="cursor-pointer"><input type="checkbox" id="ket_qua_chua_hoi_phuc"> Chưa hồi phục</label></div>
+                            <div><label class="cursor-pointer"><input type="checkbox" id="ket_qua_dang_hoi_phuc"> Đang hồi phục</label></div>
+                            <div><label class="cursor-pointer"><input type="checkbox" id="ket_qua_hoi_phuc_co_di_chung"> Hồi phục có di chứng</label></div>
+                            <div><label class="cursor-pointer"><input type="checkbox" id="ket_qua_hoi_phuc_khong_di_chung"> Hồi phục không có di chứng</label></div>
+                            <div><label class="cursor-pointer"><input type="checkbox" id="ket_qua_khong_ro"> Không rõ</label></div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Phần C: Thông tin về thuốc nghi ngờ -->
+        <div class="avoid-break mt-4">
+            <div class="section-title">C. THÔNG TIN VỀ THUỐC NGHI NGỜ GÂY ADR</div>
+            
+            <!-- Table 13: Thuốc nghi ngờ -->
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead>
+                        <tr class="text-center text-xs">
+                            <th class="w-8" rowspan="2">STT</th>
+                            <th rowspan="2" class="w-44">13. Thuốc (tên gốc và tên thương mại)</th>
+                            <th rowspan="2">Dạng bào chế, hàm lượng</th>
+                            <th rowspan="2">Nhà sản xuất</th>
+                            <th rowspan="2">Số lô</th>
+                            <th rowspan="2">Liều dùng 1 lần</th>
+                            <th rowspan="2">Số lần dùng/ngày</th>
+                            <th rowspan="2">Đường dùng</th>
+                            <th colspan="2">Ngày điều trị (dd/mm/yy)</th>
+                            <th rowspan="2">Lý do dùng thuốc</th>
+                        </tr>
+                        <tr class="text-center text-xs">
+                            <th>Bắt đầu</th>
+                            <th>Kết thúc</th>
+                        </tr>
+                    </thead>
+                    <tbody id="table-thuoc-nghi-ngo-body">
+                        <tr>
+                            <td class="text-center font-bold">i</td>
+                            <td><input type="text" id="thuoc_i_ten" class="input-field"></td>
+                            <td><input type="text" id="thuoc_i_dang" class="input-field"></td>
+                            <td><input type="text" id="thuoc_i_nsx" class="input-field"></td>
+                            <td><input type="text" id="thuoc_i_lo" class="input-field"></td>
+                            <td><input type="text" id="thuoc_i_lieu" class="input-field"></td>
+                            <td><input type="text" id="thuoc_i_solan" class="input-field"></td>
+                            <td><input type="text" id="thuoc_i_duong" class="input-field"></td>
+                            <td><input type="text" id="thuoc_i_batdau" class="input-field text-center"></td>
+                            <td><input type="text" id="thuoc_i_ketthuc" class="input-field text-center"></td>
+                            <td><input type="text" id="thuoc_i_lydo" class="input-field"></td>
+                        </tr>
+                        <tr>
+                            <td class="text-center font-bold">ii</td>
+                            <td><input type="text" id="thuoc_ii_ten" class="input-field"></td>
+                            <td><input type="text" id="thuoc_ii_dang" class="input-field"></td>
+                            <td><input type="text" id="thuoc_ii_nsx" class="input-field"></td>
+                            <td><input type="text" id="thuoc_ii_lo" class="input-field"></td>
+                            <td><input type="text" id="thuoc_ii_lieu" class="input-field"></td>
+                            <td><input type="text" id="thuoc_ii_solan" class="input-field"></td>
+                            <td><input type="text" id="thuoc_ii_duong" class="input-field"></td>
+                            <td><input type="text" id="thuoc_ii_batdau" class="input-field text-center"></td>
+                            <td><input type="text" id="thuoc_ii_ketthuc" class="input-field text-center"></td>
+                            <td><input type="text" id="thuoc_ii_lydo" class="input-field"></td>
+                        </tr>
+                        <tr>
+                            <td class="text-center font-bold">iii</td>
+                            <td><input type="text" id="thuoc_iii_ten" class="input-field"></td>
+                            <td><input type="text" id="thuoc_iii_dang" class="input-field"></td>
+                            <td><input type="text" id="thuoc_iii_nsx" class="input-field"></td>
+                            <td><input type="text" id="thuoc_iii_lo" class="input-field"></td>
+                            <td><input type="text" id="thuoc_iii_lieu" class="input-field"></td>
+                            <td><input type="text" id="thuoc_iii_solan" class="input-field"></td>
+                            <td><input type="text" id="thuoc_iii_duong" class="input-field"></td>
+                            <td><input type="text" id="thuoc_iii_batdau" class="input-field text-center"></td>
+                            <td><input type="text" id="thuoc_iii_ketthuc" class="input-field text-center"></td>
+                            <td><input type="text" id="thuoc_iii_lydo" class="input-field"></td>
+                        </tr>
+                        <tr>
+                            <td class="text-center font-bold">iv</td>
+                            <td><input type="text" id="thuoc_iv_ten" class="input-field"></td>
+                            <td><input type="text" id="thuoc_iv_dang" class="input-field"></td>
+                            <td><input type="text" id="thuoc_iv_nsx" class="input-field"></td>
+                            <td><input type="text" id="thuoc_iv_lo" class="input-field"></td>
+                            <td><input type="text" id="thuoc_iv_lieu" class="input-field"></td>
+                            <td><input type="text" id="thuoc_iv_solan" class="input-field"></td>
+                            <td><input type="text" id="thuoc_iv_duong" class="input-field"></td>
+                            <td><input type="text" id="thuoc_iv_batdau" class="input-field text-center"></td>
+                            <td><input type="text" id="thuoc_iv_ketthuc" class="input-field text-center"></td>
+                            <td><input type="text" id="thuoc_iv_lydo" class="input-field"></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Table 14: Cải thiện khi ngừng/giảm liều -->
+            <div class="mt-3">
+                <table class="w-full text-xs">
+                    <thead>
+                        <tr class="text-center">
+                            <th class="w-16" rowspan="2">STT<br><span class="text-[10px] font-normal">(Tương ứng 13.)</span></th>
+                            <th colspan="4" class="text-left px-2 py-1">14. Sau khi ngừng/giảm liều của thuốc bị nghi ngờ, phản ứng có được cải thiện không?</th>
+                        </tr>
+                        <tr class="text-center bg-gray-50">
+                            <th class="w-1/4">Có</th>
+                            <th class="w-1/4">Không</th>
+                            <th class="w-1/4">Không ngừng/giảm liều</th>
+                            <th class="w-1/4">Không có thông tin</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr class="text-center">
+                            <td class="font-bold">i</td>
+                            <td><label class="cursor-pointer block w-full py-1"><input type="checkbox" id="giam_lieu_i_co" class="w-4 h-4"></label></td>
+                            <td><label class="cursor-pointer block w-full py-1"><input type="checkbox" id="giam_lieu_i_khong" class="w-4 h-4"></label></td>
+                            <td><label class="cursor-pointer block w-full py-1"><input type="checkbox" id="giam_lieu_i_khongngung" class="w-4 h-4"></label></td>
+                            <td><label class="cursor-pointer block w-full py-1"><input type="checkbox" id="giam_lieu_i_kothongtin" class="w-4 h-4"></label></td>
+                        </tr>
+                        <tr class="text-center">
+                            <td class="font-bold">ii</td>
+                            <td><label class="cursor-pointer block w-full py-1"><input type="checkbox" id="giam_lieu_ii_co" class="w-4 h-4"></label></td>
+                            <td><label class="cursor-pointer block w-full py-1"><input type="checkbox" id="giam_lieu_ii_khong" class="w-4 h-4"></label></td>
+                            <td><label class="cursor-pointer block w-full py-1"><input type="checkbox" id="giam_lieu_ii_khongngung" class="w-4 h-4"></label></td>
+                            <td><label class="cursor-pointer block w-full py-1"><input type="checkbox" id="giam_lieu_ii_kothongtin" class="w-4 h-4"></label></td>
+                        </tr>
+                        <tr class="text-center">
+                            <td class="font-bold">iii</td>
+                            <td><label class="cursor-pointer block w-full py-1"><input type="checkbox" id="giam_lieu_iii_co" class="w-4 h-4"></label></td>
+                            <td><label class="cursor-pointer block w-full py-1"><input type="checkbox" id="giam_lieu_iii_khong" class="w-4 h-4"></label></td>
+                            <td><label class="cursor-pointer block w-full py-1"><input type="checkbox" id="giam_lieu_iii_khongngung" class="w-4 h-4"></label></td>
+                            <td><label class="cursor-pointer block w-full py-1"><input type="checkbox" id="giam_lieu_iii_kothongtin" class="w-4 h-4"></label></td>
+                        </tr>
+                        <tr class="text-center">
+                            <td class="font-bold">iv</td>
+                            <td><label class="cursor-pointer block w-full py-1"><input type="checkbox" id="giam_lieu_iv_co" class="w-4 h-4"></label></td>
+                            <td><label class="cursor-pointer block w-full py-1"><input type="checkbox" id="giam_lieu_iv_khong" class="w-4 h-4"></label></td>
+                            <td><label class="cursor-pointer block w-full py-1"><input type="checkbox" id="giam_lieu_iv_khongngung" class="w-4 h-4"></label></td>
+                            <td><label class="cursor-pointer block w-full py-1"><input type="checkbox" id="giam_lieu_iv_kothongtin" class="w-4 h-4"></label></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Table 15: Tái sử dụng thuốc bị nghi ngờ -->
+            <div class="mt-3">
+                <table class="w-full text-xs">
+                    <thead>
+                        <tr class="text-center">
+                            <th class="w-16" rowspan="2">STT<br><span class="text-[10px] font-normal">(Tương ứng 13.)</span></th>
+                            <th colspan="4" class="text-left px-2 py-1">15. Tái sử dụng thuốc bị nghi ngờ có xuất hiện lại phản ứng không?</th>
+                        </tr>
+                        <tr class="text-center bg-gray-50">
+                            <th class="w-1/4">Có</th>
+                            <th class="w-1/4">Không</th>
+                            <th class="w-1/4">Không tái sử dụng</th>
+                            <th class="w-1/4">Không có thông tin</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr class="text-center">
+                            <td class="font-bold">i</td>
+                            <td><label class="cursor-pointer block w-full py-1"><input type="checkbox" id="tai_su_dung_i_co" class="w-4 h-4"></label></td>
+                            <td><label class="cursor-pointer block w-full py-1"><input type="checkbox" id="tai_su_dung_i_khong" class="w-4 h-4"></label></td>
+                            <td><label class="cursor-pointer block w-full py-1"><input type="checkbox" id="tai_su_dung_i_khongtai" class="w-4 h-4"></label></td>
+                            <td><label class="cursor-pointer block w-full py-1"><input type="checkbox" id="tai_su_dung_i_kothongtin" class="w-4 h-4"></label></td>
+                        </tr>
+                        <tr class="text-center">
+                            <td class="font-bold">ii</td>
+                            <td><label class="cursor-pointer block w-full py-1"><input type="checkbox" id="tai_su_dung_ii_co" class="w-4 h-4"></label></td>
+                            <td><label class="cursor-pointer block w-full py-1"><input type="checkbox" id="tai_su_dung_ii_khong" class="w-4 h-4"></label></td>
+                            <td><label class="cursor-pointer block w-full py-1"><input type="checkbox" id="tai_su_dung_ii_khongtai" class="w-4 h-4"></label></td>
+                            <td><label class="cursor-pointer block w-full py-1"><input type="checkbox" id="tai_su_dung_ii_kothongtin" class="w-4 h-4"></label></td>
+                        </tr>
+                        <tr class="text-center">
+                            <td class="font-bold">iii</td>
+                            <td><label class="cursor-pointer block w-full py-1"><input type="checkbox" id="tai_su_dung_iii_co" class="w-4 h-4"></label></td>
+                            <td><label class="cursor-pointer block w-full py-1"><input type="checkbox" id="tai_su_dung_iii_khong" class="w-4 h-4"></label></td>
+                            <td><label class="cursor-pointer block w-full py-1"><input type="checkbox" id="tai_su_dung_iii_khongtai" class="w-4 h-4"></label></td>
+                            <td><label class="cursor-pointer block w-full py-1"><input type="checkbox" id="tai_su_dung_iii_kothongtin" class="w-4 h-4"></label></td>
+                        </tr>
+                        <tr class="text-center">
+                            <td class="font-bold">iv</td>
+                            <td><label class="cursor-pointer block w-full py-1"><input type="checkbox" id="tai_su_dung_iv_co" class="w-4 h-4"></label></td>
+                            <td><label class="cursor-pointer block w-full py-1"><input type="checkbox" id="tai_su_dung_iv_khong" class="w-4 h-4"></label></td>
+                            <td><label class="cursor-pointer block w-full py-1"><input type="checkbox" id="tai_su_dung_iv_khongtai" class="w-4 h-4"></label></td>
+                            <td><label class="cursor-pointer block w-full py-1"><input type="checkbox" id="tai_su_dung_iv_kothongtin" class="w-4 h-4"></label></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Table 16: Các thuốc dùng đồng thời -->
+            <div class="mt-3">
+                <p class="font-semibold text-xs mb-1">16. Các thuốc dùng đồng thời <i>(Ngoại trừ các thuốc dùng điều trị khắc phục hậu quả của ADR)</i></p>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-xs">
+                        <thead>
+                            <tr class="text-center">
+                                <th rowspan="2" class="w-4/12">Tên thuốc</th>
+                                <th rowspan="2" class="w-3/12">Dạng bào chế, hàm lượng</th>
+                                <th colspan="2" class="w-5/12">Ngày điều trị <i>(ngày/tháng/năm)</i></th>
+                                <th rowspan="2" class="w-4/12 border-l-2 border-black">Tên thuốc</th>
+                                <th rowspan="2" class="w-3/12">Dạng bào chế, hàm lượng</th>
+                                <th colspan="2" class="w-5/12">Ngày điều trị <i>(ngày/tháng/năm)</i></th>
+                            </tr>
+                            <tr class="text-center">
+                                <th>Bắt đầu</th>
+                                <th>Kết thúc</th>
+                                <th class="border-l border-black">Bắt đầu</th>
+                                <th>Kết thúc</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><input type="text" id="thuoc_dt_1_ten" class="input-field"></td>
+                                <td><input type="text" id="thuoc_dt_1_dang" class="input-field"></td>
+                                <td><input type="text" id="thuoc_dt_1_batdau" class="input-field text-center" placeholder="dd/mm/yy"></td>
+                                <td><input type="text" id="thuoc_dt_1_ketthuc" class="input-field text-center" placeholder="dd/mm/yy"></td>
+                                <td class="border-l-2 border-black"><input type="text" id="thuoc_dt_2_ten" class="input-field"></td>
+                                <td><input type="text" id="thuoc_dt_2_dang" class="input-field"></td>
+                                <td><input type="text" id="thuoc_dt_2_batdau" class="input-field text-center" placeholder="dd/mm/yy"></td>
+                                <td><input type="text" id="thuoc_dt_2_ketthuc" class="input-field text-center" placeholder="dd/mm/yy"></td>
+                            </tr>
+                            <tr>
+                                <td><input type="text" id="thuoc_dt_3_ten" class="input-field"></td>
+                                <td><input type="text" id="thuoc_dt_3_dang" class="input-field"></td>
+                                <td><input type="text" id="thuoc_dt_3_batdau" class="input-field text-center" placeholder="dd/mm/yy"></td>
+                                <td><input type="text" id="thuoc_dt_3_ketthuc" class="input-field text-center" placeholder="dd/mm/yy"></td>
+                                <td class="border-l-2 border-black"><input type="text" id="thuoc_dt_4_ten" class="input-field"></td>
+                                <td><input type="text" id="thuoc_dt_4_dang" class="input-field"></td>
+                                <td><input type="text" id="thuoc_dt_4_batdau" class="input-field text-center" placeholder="dd/mm/yy"></td>
+                                <td><input type="text" id="thuoc_dt_4_ketthuc" class="input-field text-center" placeholder="dd/mm/yy"></td>
+                            </tr>
+                            <tr>
+                                <td><input type="text" id="thuoc_dt_5_ten" class="input-field"></td>
+                                <td><input type="text" id="thuoc_dt_5_dang" class="input-field"></td>
+                                <td><input type="text" id="thuoc_dt_5_batdau" class="input-field text-center" placeholder="dd/mm/yy"></td>
+                                <td><input type="text" id="thuoc_dt_5_ketthuc" class="input-field text-center" placeholder="dd/mm/yy"></td>
+                                <td class="border-l-2 border-black"><input type="text" id="thuoc_dt_6_ten" class="input-field"></td>
+                                <td><input type="text" id="thuoc_dt_6_dang" class="input-field"></td>
+                                <td><input type="text" id="thuoc_dt_6_batdau" class="input-field text-center" placeholder="dd/mm/yy"></td>
+                                <td><input type="text" id="thuoc_dt_6_ketthuc" class="input-field text-center" placeholder="dd/mm/yy"></td>
+                            </tr>
+                            <tr>
+                                <td><input type="text" id="thuoc_dt_7_ten" class="input-field"></td>
+                                <td><input type="text" id="thuoc_dt_7_dang" class="input-field"></td>
+                                <td><input type="text" id="thuoc_dt_7_batdau" class="input-field text-center" placeholder="dd/mm/yy"></td>
+                                <td><input type="text" id="thuoc_dt_7_ketthuc" class="input-field text-center" placeholder="dd/mm/yy"></td>
+                                <td class="border-l-2 border-black"><input type="text" id="thuoc_dt_8_ten" class="input-field"></td>
+                                <td><input type="text" id="thuoc_dt_8_dang" class="input-field"></td>
+                                <td><input type="text" id="thuoc_dt_8_batdau" class="input-field text-center" placeholder="dd/mm/yy"></td>
+                                <td><input type="text" id="thuoc_dt_8_ketthuc" class="input-field text-center" placeholder="dd/mm/yy"></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Phần D: Thẩm định ADR của đơn vị -->
+        <div class="avoid-break mt-4">
+            <div class="section-title">D. PHẦN THẨM ĐỊNH ADR CỦA ĐƠN VỊ</div>
+            <div class="border border-black p-2 text-sm space-y-3">
+                <!-- 17 -->
+                <div>
+                    <p class="font-semibold mb-1">17. Đánh giá mối liên quan giữa thuốc và ADR</p>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 pl-2 text-xs sm:text-sm">
+                        <div>
+                            <div><label class="cursor-pointer"><input type="checkbox" id="danh_gia_chac_chan"> Chắc chắn</label></div>
+                            <div><label class="cursor-pointer"><input type="checkbox" id="danh_gia_co_kha_nang"> Có khả năng</label></div>
+                            <div><label class="cursor-pointer"><input type="checkbox" id="danh_gia_co_the"> Có thể</label></div>
+                        </div>
+                        <div>
+                            <div><label class="cursor-pointer"><input type="checkbox" id="danh_gia_khong_chac_chan"> Không chắc chắn</label></div>
+                            <div><label class="cursor-pointer"><input type="checkbox" id="danh_gia_chua_phan_loai"> Chưa phân loại</label></div>
+                            <div><label class="cursor-pointer"><input type="checkbox" id="danh_gia_khong_the_phan_loai"> Không thể phân loại</label></div>
+                        </div>
+                        <div>
+                            <label class="cursor-pointer"><input type="checkbox" id="danh_gia_khac_check"> Khác:</label>
+                            <input type="text" id="danh_gia_khac_text" class="input-inline w-full mt-1">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 18 -->
+                <div class="border-t border-black pt-2">
+                    <p class="font-semibold mb-1">18. Đơn vị thẩm định ADR theo thang nào?</p>
+                    <div class="flex flex-wrap gap-4 pl-2 text-xs sm:text-sm items-center">
+                        <label class="cursor-pointer"><input type="checkbox" id="thang_who"> Thang WHO</label>
+                        <label class="cursor-pointer"><input type="checkbox" id="thang_naranjo"> Thang Naranjo</label>
+                        <div class="flex items-center">
+                            <label class="cursor-pointer"><input type="checkbox" id="thang_khac_check" class="mr-1"> Thang khác:</label>
+                            <input type="text" id="thang_khac_text" class="input-inline w-44">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 19 -->
+                <div class="border-t border-black pt-2">
+                    <label class="font-semibold block mb-1">19. Phần bình luận của cán bộ y tế (nếu có)</label>
+                    <textarea id="binh_luan_can_bo_y_te" class="dotted-textarea h-20" rows="3"></textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- Phần E: Thông tin về người báo cáo -->
+        <div class="avoid-break mt-4">
+            <div class="section-title">E. THÔNG TIN VỀ NGƯỜI BÁO CÁO</div>
+            <div class="border border-black p-3 text-sm space-y-3">
+                <!-- 20 -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        20. Họ và tên: <input type="text" id="nguoi_bao_cao_ho_ten" class="input-field mt-0.5 font-semibold">
+                    </div>
+                    <div>
+                        Nghề nghiệp/Chức vụ: <input type="text" id="nguoi_bao_cao_chuc_vu" class="input-field mt-0.5">
+                    </div>
+                    <div>
+                        Điện thoại liên lạc: <input type="text" id="nguoi_bao_cao_sdt" class="input-field mt-0.5">
+                    </div>
+                    <div>
+                        Email nhận bản sao (Dược sĩ/Học viên): <input type="email" id="nguoi_bao_cao_email" oninput="syncEmailFromForm(this.value)" class="input-field mt-0.5 font-medium" placeholder="duocsi.hocvien@gmail.com">
+                    </div>
+                </div>
+
+                <!-- 21, 22, 23 -->
+                <div class="grid grid-cols-1 sm:grid-cols-3 border-t border-black pt-3 gap-3 items-center">
+                    <div>
+                        <p class="font-semibold mb-1">21. Chữ ký:</p>
+                        <input type="text" id="nguoi_bao_cao_chu_ky" class="input-field font-semibold text-center italic" placeholder="(Họ tên chữ ký số)">
+                    </div>
+                    <div class="sm:border-l sm:border-r border-black sm:px-3 py-1">
+                        <p class="font-semibold mb-1">22. Dạng báo cáo:</p>
+                        <div class="flex space-x-4">
+                            <label class="cursor-pointer"><input type="checkbox" id="dang_bao_cao_lan_dau"> Lần đầu</label>
+                            <label class="cursor-pointer"><input type="checkbox" id="dang_bao_cao_bo_sung"> Bổ sung</label>
+                        </div>
+                    </div>
+                    <div>
+                        <p class="font-semibold mb-1">23. Ngày báo cáo:</p>
+                        <input type="text" id="nguoi_bao_cao_ngay" class="input-field text-center font-medium" placeholder="dd/mm/yyyy">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Application JavaScript Logic -->
+    <script>
+        // Đồng bộ email giữa toolbar và form
+        function syncEmailToForm(val) {
+            document.getElementById('nguoi_bao_cao_email').value = val;
+        }
+
+        function syncEmailFromForm(val) {
+            document.getElementById('toolbar-email-copy').value = val;
+        }
+
+        // Hiển thị thông báo Toast
+        function showToast(message, type = 'info') {
+            const toast = document.getElementById('toast');
+            const toastMsg = document.getElementById('toast-message');
+            const toastIcon = document.getElementById('toast-icon');
+
+            toastMsg.innerText = message;
+            if (type === 'success') {
+                toastIcon.innerText = '✅';
+                toast.className = toast.className.replace(/border-\w+-\d+/, 'border-emerald-500');
+            } else if (type === 'error') {
+                toastIcon.innerText = '❌';
+                toast.className = toast.className.replace(/border-\w+-\d+/, 'border-red-500');
+            } else {
+                toastIcon.innerText = '⏳';
+                toast.className = toast.className.replace(/border-\w+-\d+/, 'border-blue-500');
+            }
+
+            toast.classList.remove('hidden');
+            if (type !== 'info') {
+                setTimeout(() => {
+                    toast.classList.add('hidden');
+                }, 7000);
+            }
+        }
+
+        /**
+         * Chuẩn hóa DOM Form trước khi kết xuất PDF / Word
+         */
+        function prepareFormClone() {
+            const originalForm = document.getElementById('adr-form');
+            const clone = originalForm.cloneNode(true);
+
+            // Copy text inputs & textareas
+            const origInputs = originalForm.querySelectorAll('input[type="text"], input[type="email"], textarea');
+            const cloneInputs = clone.querySelectorAll('input[type="text"], input[type="email"], textarea');
+
+            origInputs.forEach((orig, idx) => {
+                const cloned = cloneInputs[idx];
+                if (!cloned) return;
+                if (orig.tagName === 'TEXTAREA') {
+                    cloned.textContent = orig.value;
+                } else {
+                    cloned.setAttribute('value', orig.value);
+                }
+            });
+
+            // Copy checkboxes
+            const origChecks = originalForm.querySelectorAll('input[type="checkbox"]');
+            const cloneChecks = clone.querySelectorAll('input[type="checkbox"]');
+
+            origChecks.forEach((orig, idx) => {
+                const cloned = cloneChecks[idx];
+                if (!cloned) return;
+                if (orig.checked) {
+                    cloned.setAttribute('checked', 'checked');
+                } else {
+                    cloned.removeAttribute('checked');
+                }
+            });
+
+            return clone;
+        }
+
+        /**
+         * Chức năng Xuất PDF khổ A4 chuẩn
+         */
+        async function exportPDF() {
+            showToast('Đang kết xuất file PDF chuẩn khổ A4...', 'info');
+            const element = prepareFormClone();
+
+            const opt = {
+                margin:       [8, 8, 8, 8],
+                filename:     'Bao_Cao_ADR_ThucHanh.pdf',
+                image:        { type: 'jpeg', quality: 0.98 },
+                html2canvas:  { scale: 2, useCORS: true, logging: false },
+                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
+                pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] }
+            };
+
+            try {
+                await html2pdf().set(opt).from(element).save();
+                showToast('Xuất file PDF thành công!', 'success');
+            } catch (err) {
+                console.error(err);
+                showToast('Có lỗi khi tạo PDF: ' + err.message, 'error');
+            }
+        }
+
+        /**
+         * Chức năng Xuất file Word (.docx)
+         */
+        async function exportWord() {
+            showToast('Đang tạo file Word (.docx)...', 'info');
+            try {
+                const clonedForm = prepareFormClone();
+
+                const htmlContent = `
+                    <!DOCTYPE html>
+                    <html xmlns:o='urn:schemas-microsoft-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+                    <head>
+                        <meta charset='utf-8'>
+                        <title>Báo cáo ADR - Thực Hành</title>
+                        <style>
+                            body { font-family: 'Times New Roman', serif; font-size: 13px; line-height: 1.4; }
+                            .section-title { background: #000; color: #fff; padding: 4px; font-weight: bold; margin-top: 15px; text-transform: uppercase; }
+                            table { border-collapse: collapse; width: 100%; margin-top: 5px; }
+                            th, td { border: 1px solid #000; padding: 5px; text-align: left; vertical-align: middle; }
+                            th { background-color: #f0f0f0; text-align: center; }
+                            .input-field, .input-inline { border-bottom: 1px solid #000; font-weight: bold; }
+                        </style>
+                    </head>
+                    <body>
+                        ${clonedForm.innerHTML}
+                    </body>
+                    </html>
+                `;
+
+                if (typeof htmlDocx !== 'undefined') {
+                    const converted = htmlDocx.generateDocument(htmlContent);
+                    saveAs(converted, 'Bao_Cao_ADR_ThucHanh.docx');
+                    showToast('Xuất file Word (.docx) thành công!', 'success');
+                } else {
+                    const blob = new Blob(['\ufeff' + htmlContent], {
+                        type: 'application/msword'
+                    });
+                    saveAs(blob, 'Bao_Cao_ADR_ThucHanh.doc');
+                    showToast('Xuất file Word thành công!', 'success');
+                }
+            } catch (err) {
+                console.error(err);
+                showToast('Không thể tạo file Word: ' + err.message, 'error');
+            }
+        }
+
+        /**
+         * Chức năng Gửi Báo cáo (Tạo file PDF ngầm & Gửi Email từ thuky.hdhct@gmail.com)
+         * Khi chạy trên Vercel: Tự động gọi API Serverless /api/send-report
+         */
+        async function sendReportEmail() {
+            const reporterEmail = document.getElementById('nguoi_bao_cao_email').value.trim();
+            const copyEmail = document.getElementById('toolbar-email-copy').value.trim();
+            const targetEmail = copyEmail || reporterEmail;
+
+            if (!targetEmail) {
+                alert('Vui lòng nhập địa chỉ email Dược sĩ / Học viên nhận bản sao báo cáo thực hành.');
+                document.getElementById('toolbar-email-copy').focus();
+                return;
+            }
+
+            const btn = document.getElementById('btn-send-email');
+            const btnText = document.getElementById('btn-send-text');
+
+            try {
+                btn.disabled = true;
+                btnText.innerText = '⏳ Đang xử lý...';
+                showToast('Đang kết xuất bản sao báo cáo PDF & gửi email từ thuky.hdhct@gmail.com...', 'info');
+
+                // 1. Kết xuất PDF dưới dạng Base64
+                const element = prepareFormClone();
+                const opt = {
+                    margin: [8, 8, 8, 8],
+                    filename: 'Bao_Cao_ADR_ThucHanh.pdf',
+                    image: { type: 'jpeg', quality: 0.95 },
+                    html2canvas: { scale: 1.5, useCORS: true },
+                    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+                };
+
+                const pdfDataUri = await html2pdf().set(opt).from(element).outputPdf('datauristring');
+
+                // 2. Thu thập dữ liệu tóm tắt form
+                const payload = {
+                    reporterEmail: reporterEmail,
+                    recipientCopyEmail: copyEmail,
+                    reporterName: document.getElementById('nguoi_bao_cao_ho_ten').value || 'Dược sĩ / Học viên',
+                    patientName: document.getElementById('benh_nhan_ho_ten').value || 'Không đề cập',
+                    reportType: document.getElementById('dang_bao_cao_bo_sung').checked ? 'Bổ sung (Thực hành)' : 'Lần đầu (Thực hành)',
+                    fileName: `Bao_Cao_ADR_ThucHanh_${Date.now()}.pdf`,
+                    fileFormat: 'pdf',
+                    fileBase64: pdfDataUri
+                };
+
+                // Nếu chạy trong môi trường Google Apps Script HTML Service
+                if (typeof google !== 'undefined' && google.script && google.script.run) {
+                    google.script.run
+                        .withSuccessHandler(function(result) {
+                            if (typeof result === 'string') {
+                                try { result = JSON.parse(result); } catch(e){}
+                            }
+                            if (result && result.success) {
+                                showToast(result.message, 'success');
+                                alert('🎉 ' + result.message);
+                            } else {
+                                const msg = (result && result.message) ? result.message : 'Có lỗi khi gửi email.';
+                                showToast(msg, 'error');
+                                alert('❌ Lỗi: ' + msg);
+                            }
+                            btn.disabled = false;
+                            btnText.innerText = 'Gửi Báo Cáo';
+                        })
+                        .withFailureHandler(function(err) {
+                            showToast('Lỗi gửi mail: ' + err.message, 'error');
+                            alert('❌ Lỗi: ' + err.message);
+                            btn.disabled = false;
+                            btnText.innerText = 'Gửi Báo Cáo';
+                        })
+                        .processReportFromClient(payload);
+                    return;
+                }
+
+                // Endpoint Vercel API
+                const endpoint = '/api/send-report';
+
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const responseText = await response.text();
+                let result;
+
+                try {
+                    result = JSON.parse(responseText);
+                } catch (e) {
+                    if (responseText.trim().startsWith('<')) {
+                        throw new Error(
+                            'Máy chủ trả về trang HTML thay vì JSON.\n' +
+                            'Vui lòng đảm bảo bạn đã deploy ứng dụng lên Vercel cùng thư mục api/send-report.js.'
+                        );
+                    }
+                    throw new Error('Dữ liệu máy chủ trả về không hợp lệ: ' + responseText.substring(0, 100));
+                }
+
+                if (result.success) {
+                    showToast(result.message, 'success');
+                    alert('🎉 ' + result.message);
+                } else {
+                    showToast('Lỗi gửi mail: ' + result.message, 'error');
+                    alert('❌ Lỗi: ' + result.message);
+                }
+
+            } catch (err) {
+                console.error(err);
+                showToast('Có lỗi xảy ra: ' + err.message, 'error');
+                alert('❌ Không thể gửi báo cáo: ' + err.message);
+            } finally {
+                btn.disabled = false;
+                btnText.innerText = 'Gửi Báo Cáo';
+            }
+        }
+    </script>
+</body>
+</html>
